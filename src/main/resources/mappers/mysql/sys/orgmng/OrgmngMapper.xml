@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.sys.orgmng.mapper.mysql.OrgmngMapper">
+
+	
+    <!-- 
+		기관목록 조회
+	-->
+	<select id="selectListInst" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM
+			 , INST_CD
+			 , INST_NM
+			 , CHG_DT
+		  FROM TN_INST
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND INST_CD LIKE '%' || #{instCd} || '%'
+		   AND INST_NM LIKE '%' || #{instNm} || '%'
+	</select>
+	
+	<!-- 
+		기관정보 조회
+	-->
+	<select id="selectInstDetail" parameterType="hashmap" resultType="camelHashMap">
+		SELECT INST_CD
+             , INST_NM
+             , INST_ENG_NM
+             , INST_SE_CD
+             , INST_ENG_ABBR_NM
+             , INST_IP_ADDR_STRT_NO
+             , INST_IP_ADDR_END_NO
+             , INST_SCHM_NM
+             , DEL_YN
+             , RGTR_ID
+             , RGTR_IP_ADDR
+             , REG_DT
+             , CHNRG_ID
+             , CHNRG_IP_ADDR
+             , CHG_DT
+		  FROM TN_INST
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND INST_CD = #{instCd}
+	</select>
+	
+	<!-- 
+		기관코드 중복 체크
+	-->
+	<select id="checkInstCode" parameterType="hashmap" resultType="int">
+		SELECT COUNT(*) CNT
+		  FROM TN_INST
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND INST_CD = #{instCd}
+	</select>
+	
+	<!-- 
+		기관영문약어명 중복 체크
+	-->
+	<select id="checkInstEngAbbrNm" parameterType="hashmap" resultType="int">
+		SELECT COUNT(*) CNT
+		  FROM TN_INST
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND INST_ENG_ABBR_NM = #{instEngAbbrNm}
+	</select>
+	
+	
+	<!-- 
+		기관정보 저장
+	-->	
+	<update id="saveInst" parameterType="hashmap">
+		MERGE INTO TN_INST
+		USING DUAL
+		ON ( INST_CD = #{instCd})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chnrgId != null and chnrgId != ''">CHNRG_ID = #{chnrgId}</if>
+			<if test="chnrgIpAddr != null and chnrgIpAddr != ''">, CHNRG_IP_ADDR = #{chnrgIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+			<if test="instNm != null and instNm != ''">, INST_NM = #{instNm} </if>
+			<if test="instEngNm != null and instEngNm != ''">, INST_ENG_NM = #{instEngNm} </if>
+			<if test="instSeCd != null and instSeCd != ''">, INST_SE_CD = #{instSeCd} </if>
+			<if test="instEngAbbrNm != null and instEngAbbrNm != ''">, INST_ENG_ABBR_NM = #{instEngAbbrNm} </if>
+			<if test="instIpAddrStrtNo != null and instIpAddrStrtNo != ''">, INST_IP_ADDR_STRT_NO = #{instIpAddrStrtNo} </if>
+			<if test="instIpAddrEndNo != null and instIpAddrEndNo != ''">, INST_IP_ADDR_END_NO = #{instIpAddrEndNo} </if>
+			<if test="instSchmNm != null and instSchmNm != ''">, INST_SCHM_NM = #{instSchmNm} </if>
+		WHEN NOT MATCHED THEN
+		INSERT
+			( INST_CD
+            , INST_NM
+            , INST_ENG_NM
+            , INST_SE_CD
+            , INST_ENG_ABBR_NM
+            , INST_IP_ADDR_STRT_NO
+            , INST_IP_ADDR_END_NO
+            , INST_SCHM_NM
+            , DEL_YN
+            , RGTR_ID
+            , RGTR_IP_ADDR
+            , REG_DT
+            , CHNRG_ID
+            , CHNRG_IP_ADDR
+            , CHG_DT)
+		VALUES
+			( #{instCd}
+            , #{instNm}
+            , #{instEngNm}
+            , #{instSeCd}
+            , #{instEngAbbrNm}
+            , #{instIpAddrStrtNo}
+            , #{instIpAddrEndNo}
+            , #{instSchmNm}
+            , 'N'
+            , #{rgtrId}
+            , #{rgtrIpAddr}
+            , SYSDATE
+            , #{chnrgId}
+            , #{chnrgIpAddr}
+            , SYSDATE)
+            
+	</update>
+	
+
+	
+	<!-- 
+		기관정보 삭제
+	-->	
+	<update id="deleteInst" parameterType="hashmap">
+		UPDATE TN_INST
+		   SET DEL_YN = 'Y'
+		 WHERE INST_CD = #{instCode}
+	</update>
+	
+ </mapper>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.audit.userAuthStatuse.mapper.mysql.UserAuthStatuseMapper">
+
+	
+    <!-- 
+		목록 조회
+	-->
+	<select id="selectList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT C.USER_ID 
+		     , C.USER_NM 
+		     , B.CHGR_ID
+		     , (SELECT AA.USER_NM 
+		          FROM TN_USER AA
+		         WHERE AA.USER_ID = B.CHGR_ID) AS CHGR_NM
+		     , (SELECT LISTAGG(BB.AUTHRT_NM, ',') 
+		          FROM TN_USER_AUTHRT_GRNT AA
+		             , TN_AUTHRT BB
+		         WHERE AA.AUTHRT_ID  = BB.AUTHRT_ID
+		           AND AA.USER_ID = B.USER_ID) AS CHGR_AUTHRT
+		     , B.CHG_DT 
+		  FROM TN_AUTHRT A
+		     , TN_USER_AUTHRT_GRNT B
+		     , (SELECT tu.*
+		          FROM TN_USER tu
+		             , TN_ORG tot
+		         WHERE tu.DEPT_CD  = tot.DEPT_CD
+		           <if test="instCd != null and instCd != ''">AND tot.INST_CD = #{instCd}</if>
+		        ) C
+		 WHERE 1=1
+		   AND A.AUTHRT_ID = B.AUTHRT_ID 
+		   AND B.USER_ID = C.USER_ID  
+		   <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+		   		AND B.CHG_DT BETWEEN TO_DATE(#{startDate}, 'YYYYMMDD') AND TO_DATE(#{endDate}, 'YYYYMMDD')
+		   </if>
+	</select>
+	
+	<!-- 
+		로그 조회
+	-->
+	<select id="selectDetail" parameterType="hashmap" resultType="camelHashMap">
+		SELECT A.AUTHRT_ID
+		     , B.AUTHRT_NM 
+			 , A.HIST_OCRN_DT
+		  FROM TH_USER_AUTHRT_GRNT A
+		     , TN_AUTHRT B
+		 WHERE 1=1
+		   AND A.AUTHRT_ID = B.AUTHRT_ID
+		   AND A.USER_ID = #{userId}
+	</select>
+</mapper>

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.sys.trxmng.mapper.mysql.TrxmngMapper">
+	<select id="selectTrxList" parameterType="hashmap" resultType="camelHashMap">
+	SELECT * FROM ( SELECT a.trnsc_id, a.sys_se_cd,a.fn_nm,a.trnsc_desc,a.del_yn trnsc_del_yn, b.AUTHRT_YN, c.AUTHRT_ID, c.DEL_YN authrt_del_yn 
+		FROM TN_TRNSC a LEFT JOIN TN_AUTHRT_TRNSC b ON b.trnsc_id=a.trnsc_id
+		LEFT JOIN TN_AUTHRT c ON c.AUTHRT_ID = b.AUTHRT_ID WHERE a.del_yn='N' )
+		PIVOT 
+		( MAX(AUTHRT_YN) AS auth 
+			FOR AUTHRT_ID IN ( 
+			'1000000' AS opmng, '1100000' AS insttmng, '1110000' AS insttusr, '1111000' AS otinstusr, '1111100' AS incdntmng, '1111110' AS incdntusr 
+			) 
+		)
+		WHERE 1=1
+		and trnsc_del_yn='N'   
+		<if test="sysSeCd != null and !sysSeCd.equals('')">
+		  and SYS_SE_CD LIKE '%'||#{sysSeCd}||'%' 
+		</if>
+		<if test="fnNm != null and !fnNm.equals('')">
+		  and FN_NM LIKE '%'||#{fnNm}||'%' 
+		</if>
+		<if test="trnscDesc != null and !trnscDesc.equals('')">
+		  and TRNSC_DESC LIKE '%'||#{trnscDesc}||'%' 
+		</if>
+	</select>
+	
+	<select id="selectTrnscId" parameterType="hashmap" resultType="camelHashMap">
+		SELECT TRNSC_ID FROM  TN_TRNSC where TRNSC_ID=#{trnscId}
+	</select>
+	
+	<select id="selectSyscode" parameterType="hashmap" resultType="camelHashMap">
+		SELECT SYS_SE_CD FROM TN_TRNSC
+	</select>
+
+	<select id="selectTrxnames" parameterType="hashmap" resultType="camelHashMap">
+		SELECT FN_NM FROM TN_TRNSC
+	</select>
+
+	<select id="selectTrnscList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS NO, DEL_YN, TRNSC_ID, URL_ADDR, FN_NM, SYS_SE_CD, TRNSC_DESC, CHGR_ID, CHGR_IP_ADDR ,CHG_DT,REGR_ID,REGR_IP_ADDR,REG_DT 
+		FROM  TN_TRNSC
+		WHERE 1=1 
+		<choose><when test="trnscId != null and !trnscId.equals('')">and TRNSC_ID=#{trnscId}</when><otherwise></otherwise></choose>
+		<choose><when test="delYn != null and !delYn.equals('')">and DEL_YN=#{delYn}</when><otherwise>and (DEL_YN='N')</otherwise></choose>
+		<if test="sysSeCd != null and !sysSeCd.equals('')">
+		  and SYS_SE_CD LIKE '%'||#{sysSeCd}||'%' 
+		</if>
+		<if test="fnNm != null and !fnNm.equals('')">
+		  and FN_NM LIKE '%'||#{fnNm}||'%' 
+		</if>
+		<if test="trnscDesc != null and !trnscDesc.equals('')">
+		  and TRNSC_DESC LIKE '%'||#{trnscDesc}||'%' 
+		</if>
+	</select>
+	
+	<select id="selectTrxInfo" parameterType="hashmap" resultType="camelHashMap">
+		SELECT * FROM TN_TRNSC a
+		LEFT JOIN TN_AUTHRT_TRNSC b
+		ON a.TRNSC_ID=b.TRNSC_ID 
+		WHERE TRNSC_ID=#{trnscId} 
+	</select>
+	
+	<select id="selectAuthrt" parameterType="hashmap" resultType="camelHashMap">
+	SELECT DEL_YN, AUTHRT_ID,AUTHRT_NM,AUTHRT_DESC,OUTSD_INST_AUTHRT_USE_YN,CHGR_ID,CHG_DT,CHGR_IP_ADDR,REGR_ID,REG_DT,REGR_IP_ADDR 
+  FROM TN_AUTHRT where 1=1 <choose><when test="authrtId != null and !authrtId.equals('')">AND AUTHRT_ID=#{authrtId}</when><otherwise></otherwise></choose>
+  <choose><when test="delYn != null and !delYn.equals('')">and DEL_YN=#{delYn}</when><otherwise>DEL_YN='N'</otherwise></choose>
+	</select>
+	
+	<select id="selectIsAuthrtTrnsc" parameterType="hashmap" resultType="camelHashMap">
+		SELECT * FROM TN_AUTHRT_TRNSC WHERE 1=1 <choose><when test="trnscId != null and !trnscId.equals('')">and TRNSC_ID=#{trnscId} </when><otherwise></otherwise></choose>
+		<choose><when test="authrtId != null and !authrtId.equals('')">AND AUTHRT_ID=#{authrtId}</when><otherwise></otherwise></choose>
+		<choose><when test="delYn != null and !delYn.equals('')">and DEL_YN=#{delYn}</when><otherwise>DEL_YN='N'</otherwise></choose>
+	</select>
+	
+	<insert id="insertTrnsc" parameterType="hashmap" >
+		INSERT INTO TN_TRNSC(
+			TRNSC_ID,SYS_SE_CD
+			<choose><when test="delYn != null and !delYn.equals('')">,DEL_YN</when><otherwise></otherwise></choose>
+			,REGR_ID
+			,REGR_IP_ADDR
+			,REG_DT
+			,CHGR_ID,CHGR_IP_ADDR
+			,CHG_DT
+			<choose><when test="urlAddr != null and !urlAddr.equals('')">,URL_ADDR</when><otherwise></otherwise></choose>
+			<choose><when test="fnNm != null and !fnNm.equals('')">,FN_NM</when><otherwise></otherwise></choose>
+			<choose><when test="trnscDesc != null and !trnscDesc.equals('')">,TRNSC_DESC</when><otherwise></otherwise></choose>
+		)
+		VALUES(
+			#{trnscId},#{sysSeCd}
+			<choose><when test="delYn != null and !delYn.equals('')">,#{delYn}</when><otherwise></otherwise></choose>
+			,#{regrId},#{regrIpAddr}
+			<choose><when test="frstRegDt != null and !frstRegDt.equals('')">,to_date(#{frstRegDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+			,#{chgrId},#{chgrIpAddr}
+			<choose><when test="lastChgDt != null and !lastChgDt.equals('')">,to_date(#{lastChgDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+			<choose><when test="urlAddr != null and !urlAddr.equals('')">,#{urlAddr}</when><otherwise></otherwise></choose>
+			<choose><when test="fnNm != null and !fnNm.equals('')">,#{fnNm}</when><otherwise></otherwise></choose>
+			<choose><when test="trnscDesc != null and !trnscDesc.equals('')">,#{trnscDesc}</when><otherwise></otherwise></choose>
+		)
+
+	</insert>	
+
+	<select id="selectMaxAuthrtId" resultType="camelHashMap">
+	select NVL(MAX(authrt_id), 1001)+1 AS authrtId from TN_AUTHRT
+	</select>
+	
+	<insert id="insertAuthrt" parameterType="hashmap" >
+		INSERT INTO TN_AUTHRT (
+		  authrt_id
+		  , authrt_nm
+		  <choose><when test="authrtDesc != null and !authrtDesc.equals('')">, authrt_desc</when><otherwise></otherwise></choose>
+		  , OUTSD_INST_AUTHRT_USE_YN
+		  , DEL_YN
+		  , REGR_ID
+		  , REG_DT
+		  <choose><when test="regrIpAddr != null and !regrIpAddr.equals('')">, REGR_IP_ADDR</when><otherwise></otherwise></choose>
+		  , CHGR_ID
+		  , CHG_DT
+		  <choose><when test="chgrIpAddr != null and !chgrIpAddr.equals('')">, CHGR_IP_ADDR</when><otherwise></otherwise></choose>
+		) 
+		values(
+		  <choose>
+			  <when test="authrtId != null and !authrtId.equals('')">#{authrtId}</when>
+			  <otherwise>(select NVL(MAX(authrt_id), 1001)+1 from TN_AUTHRT)</otherwise>
+		  </choose>
+		  ,#{authrtNm}
+		  <choose><when test="authrtDesc != null and !authrtDesc.equals('')">, #{authrtDesc}</when><otherwise></otherwise></choose>
+		  <choose><when test="outsdInstAuthrtUseYn != null and !outsdInstAuthrtUseYn.equals('')">, #{outsdInstAuthrtUseYn} </when><otherwise>,'N'</otherwise></choose>
+		  <choose><when test="delYn != null and !delYn.equals('')">, #{delYn}  </when><otherwise>,'N'</otherwise></choose>
+		  , #{regrId} 
+		  <choose><when test="frstRegDt != null and !frstRegDt.equals('')">,to_date(#{frstRegDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+		  <choose><when test="regrIpAddr != null and !regrIpAddr.equals('')">, #{regrIpAddr}</when><otherwise></otherwise></choose>
+		  , #{chgrId} 
+		  <choose><when test="lastChgDt != null and !lastChgDt.equals('')">,to_date(#{lastChgDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+		  <choose><when test="chgrIpAddr != null and !chgrIpAddr.equals('')">, #{chgrIpAddr}</when><otherwise></otherwise></choose>
+		)
+	</insert>
+	
+	<insert id="insertTrxAuth" parameterType="hashmap" >
+		INSERT INTO TN_AUTHRT_TRNSC(
+		  AUTHRT_ID,TRNSC_ID
+		  ,DEL_YN
+		  ,AUTHRT_YN
+		  ,REGR_ID 
+		  ,REG_DT
+		  ,REGR_IP_ADDR
+		  ,CHGR_ID
+		  ,CHG_DT
+		  ,CHGR_IP_ADDR
+		)
+		VALUES(
+		    #{authrtId},#{trnscId}
+		    <choose><when test="delYn != null and !delYn.equals('')">, #{delYn}  </when><otherwise>,'N'</otherwise></choose>
+		    <choose><when test="authrtYn != null and !authrtYn.equals('')">, #{authrtYn}  </when><otherwise>,'N'</otherwise></choose>
+		   	,#{regrId} 
+			<choose><when test="frstRegDt != null and !frstRegDt.equals('')">,to_date(#{firstRegDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+			, #{regrIpAddr}
+			, #{chgrId}
+		    <choose><when test="lastChgDt != null and !lastChgDt.equals('')">,to_date(#{lastChgDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+		    , #{chgrIpAddr}
+		)
+	</insert>
+	
+	<update id="updateTrxTrnsc" parameterType="hashmap" >
+		UPDATE TN_TRNSC SET (
+		    <choose><when test="lastChgDt != null and !lastChgDt.equals('')">CHG_DT=#{lastChgDt}</when><otherwise>CHG_DT=sysdate</otherwise></choose>
+		    <choose><when test="chgrId != null and !chgrId.equals('')">,CHGR_ID=#{chgrId}</when><otherwise></otherwise></choose>
+		    <choose><when test="chgrIpAddr != null and !chgrIpAddr.equals('')">,CHGR_IP_ADDR=#{chgrIpAddr}</when><otherwise></otherwise></choose>
+		    <choose><when test="trnscId != null and !trnscId.equals('')" >,TRNSC_ID=#{trnscId}</when><otherwise></otherwise></choose>
+		    <choose><when test="sysSeCd != null and !sysSeCd.equals('')">,SYS_SE_CD=#{sysSeCd}</when><otherwise></otherwise></choose>
+		    <choose><when test="delYn != null and !delYn.equals('')">,DEL_YN=#{delYn}</when><otherwise></otherwise></choose>
+		    <choose><when test="urlAddr != null and !urlAddr.equals('')">,URL_ADDR=#{urlAddr}</when><otherwise></otherwise></choose>
+		    <choose><when test="fnNm != null and !fnNm.equals('')">,FN_NM=#{fnNm}</when><otherwise></otherwise></choose>
+		    <choose><when test="trnscDesc != null and !trnscDesc.equals('')">,TRNSC_DESC=#{trnscDesc}</when><otherwise></otherwise></choose>
+		) WHERE TRNSC_ID=#{trnscId}
+	</update>	
+	
+	<update id="updateTrxAuth" parameterType="hashmap" >
+		UPDATE TN_AUTHRT_TRNSC SET
+			<choose><when test="lastChgDt != null and !lastChgDt.equals('')">CHG_DT=to_date(#{lastChgDt}, 'YYYY-MM-dd')</when><otherwise>CHG_DT=sysdate</otherwise></choose>
+			<choose><when test="chgrId != null and !chgrId.equals('')">,CHGR_ID=#{chgrId}</when><otherwise></otherwise></choose>
+		    <choose><when test="chgrIpAddr != null and !chgrIpAddr.equals('')">,CHGR_IP_ADDR=#{chgrIpAddr}</when><otherwise></otherwise></choose>
+		    <choose><when test="delYn != null and !delYn.equals('')">,DEL_YN=#{delYn}</when><otherwise></otherwise></choose>
+		    <choose><when test="authrtYn != null and !authrtYn.equals('')">,AUTHRT_YN=#{authrtYn}</when><otherwise></otherwise></choose>
+		WHERE TRNSC_ID=#{trnscId} and AUTHRT_ID=#{authrtId}
+	</update>
+	
+	<update id="deleteTrnsc" parameterType="hashmap" >
+		UPDATE TN_TRNSC SET
+		<choose><when test="delYn != null and !delYn.equals('')">DEL_YN=#{delYn}</when><otherwise>DEL_YN='Y'</otherwise></choose>
+	    WHERE TRNSC_ID=#{trnscId}
+	</update>
+	
+	<update id="deleteAuthrt" parameterType="hashmap" >
+		UPDATE TN_AUTHRT SET
+		<choose><when test="delYn != null and !delYn.equals('')">DEL_YN=#{delYn}</when><otherwise>DEL_YN='Y'</otherwise></choose>
+	    WHERE AUTHRT_ID=#{authrtId}
+	</update>
+	
+	<update id="deleteTrxAuth" parameterType="hashmap" >
+		UPDATE TN_AUTHRT_TRNSC SET
+			<choose><when test="delYn != null and !delYn.equals('')">DEL_YN=#{delYn}</when><otherwise>DEL_YN='Y'</otherwise></choose>
+		WHERE TRNSC_ID=#{trnscId} and AUTHRT_ID=#{authrtId}
+	</update>
+	
+	<select id="selectTrnscAuthrtList" parameterType="java.lang.String" resultType="camelHashMap">
+		SELECT ROWNUM NO, A.AUTHRT_ID, A.AUTHRT_NM, A.AUTHRT_DESC, NVL(B.AUTHRT_YN, 'N') AS AUTHRT_YN, B.TRNSC_ID
+		  FROM TN_AUTHRT A,
+		  	   (SELECT *
+		  	      FROM TN_AUTHRT_TRNSC
+		  	     WHERE DEL_YN = 'N'
+		  	       AND TRNSC_ID = #{trnscId}) B
+		 WHERE A.AUTHRT_ID = B.AUTHRT_ID(+)
+		   AND A.DEL_YN = 'N'
+	</select>
+	
+	<update id="saveTrnscInfo" parameterType="hashmap">
+		MERGE INTO TN_TRNSC
+		USING DUAL
+		   ON (TRNSC_ID = #{trnscId})
+		 WHEN MATCHED THEN
+			  UPDATE 
+			     SET SYS_SE_CD = #{sysSeCd},
+			     	 FN_NM = #{fnNm},
+			     	 TRNSC_DESC = #{trnscDesc},
+			     	 URL_ADDR = #{urlAddr},
+			     	 CHG_DT = SYSDATE
+				<if test="chgrId != null and chgrId != ''">
+					, CHGR_ID = #{chgrId}
+				</if>
+				<if test="chgrIpAddr != null and chgrIpAddr != ''">
+					, CHGR_IP_ADDR = #{chgrIpAddr}
+				</if>
+		 WHEN NOT MATCHED THEN
+		 	  INSERT(TRNSC_ID, SYS_SE_CD, DEL_YN, REGR_ID, REGR_IP_ADDR, REG_DT, URL_ADDR, FN_NM, TRNSC_DESC)
+		 	  VALUES (#{trnscId}, #{sysSeCd}, 'N', #{regrId}, #{regrIpAddr}, SYSDATE, #{urlAddr}, #{fnNm}, #{trnscDesc})
+	</update>
+	
+	<!-- WHERE 조건 추후 삭제 필요(테스트용으로 하드코딩) -->
+	<update id="insertDefaultAuthrtList" parameterType="hashmap">
+		INSERT INTO TN_AUTHRT_TRNSC(AUTHRT_ID, TRNSC_ID, DEL_YN, REGR_ID, REGR_IP_ADDR, REG_DT, AUTHRT_YN)
+		SELECT AUTHRT_ID, #{trnscId}, 'N', #{regrId}, #{regrIpAddr}, SYSDATE, 'N'
+		  FROM TN_AUTHRT
+	</update>
+	
+	<delete id="deleteTrnscInfo" parameterType="hashmap">
+		UPDATE TN_TRNSC
+		   SET DEL_YN = 'Y'
+		 WHERE TRNSC_ID IN
+ 						<foreach collection="trnscIdList" item="trnscId" open="(" close=")" separator=",">
+		 				   #{trnscId}
+		 				</foreach> 
+	</delete>
+	
+	<update id="updateAuthrtInfo" parameterType="hashmap">
+		BEGIN
+			UPDATE TN_AUTHRT_TRNSC
+			   SET AUTHRT_YN = 'N'
+			 WHERE TRNSC_ID = #{trnscId};
+			
+		<foreach collection="authrtIdList" item="authrtId">
+			MERGE INTO TN_AUTHRT_TRNSC
+			USING DUAL
+			   ON (TRNSC_ID = #{trnscId} AND AUTHRT_ID = #{authrtId})
+			 WHEN MATCHED THEN
+		   UPDATE
+		      SET AUTHRT_YN = 'Y',
+		          CHG_DT = SYSDATE
+		   	   <if test="chgrId != null and chgrId != ''">
+				, CHGR_ID = #{chgrId}
+		   	   </if>
+		   	   <if test="chgrIpAddr != null and chgrIpAddr != ''">
+				, CHGR_IP_ADDR = #{chgrIpAddr}
+		   	   </if>
+			 WHEN NOT MATCHED THEN
+		   INSERT (AUTHRT_ID, TRNSC_ID, AUTHRT_YN, DEL_YN, REGR_ID, REGR_IP_ADDR, REG_DT)
+		   VALUES (#{authrtId}, #{trnscId}, 'Y', 'N', #{regrId}, #{regrIpAddr}, SYSDATE);
+		</foreach>
+		END;
+	</update>
+ </mapper>

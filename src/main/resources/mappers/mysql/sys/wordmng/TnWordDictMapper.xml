@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spo.cmmn.admin.sys.wordmng.mapper.mysql.TnWordDictMapper">
+  <resultMap id="BaseResultMap" type="com.spo.cmmn.admin.sys.wordmng.model.TnWordDict">
+    <!--@mbg.generated-->
+    <!--@Table TN_WORD_DICT-->
+    <id column="DICT_ID" jdbcType="VARCHAR" property="DICT_ID" />
+    <result column="DICT_KEYWD_NM" jdbcType="VARCHAR" property="DICT_KEYWD_NM" />
+    <result column="DICT_KEYWD_DESC" jdbcType="VARCHAR" property="DICT_KEYWD_DESC" />
+    <result column="WORD_DICT_USE_YN" jdbcType="CHAR" property="WORD_DICT_USE_YN" />
+    <result column="DEL_YN" jdbcType="CHAR" property="DEL_YN" />
+    <result column="REGR_ID" jdbcType="VARCHAR" property="REGR_ID" />
+    <result column="REGR_IP_ADDR" jdbcType="VARCHAR" property="REGR_IP_ADDR" />
+    <result column="REG_DT" jdbcType="TIMESTAMP" property="REG_DT" />
+    <result column="CHGR_ID" jdbcType="VARCHAR" property="CHGR_ID" />
+    <result column="CHGR_IP_ADDR" jdbcType="VARCHAR" property="CHGR_IP_ADDR" />
+    <result column="CHG_DT" jdbcType="TIMESTAMP" property="CHG_DT" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    DICT_ID, DICT_KEYWD_NM, DICT_KEYWD_DESC, WORD_DICT_USE_YN, DEL_YN, REGR_ID, REGR_IP_ADDR, 
+    REG_DT, CHGR_ID, CHGR_IP_ADDR, CHG_DT, '10000' AS "SUPER_TYPE", '10004' AS "SUB_TYPE"
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+    <!--@mbg.generated-->
+    select 
+    <include refid="Base_Column_List" />
+    from TN_WORD_DICT
+    where DICT_ID = #{DICT_ID,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    <!--@mbg.generated-->
+    delete from TN_WORD_DICT
+    where DICT_ID = #{DICT_ID,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.spo.cmmn.admin.sys.wordmng.model.TnWordDict">
+    <!--@mbg.generated-->
+    MERGE INTO TN_WORD_DICT
+    USING DUAL
+    ON (DICT_KEYWD_NM = #{DICT_KEYWD_NM,jdbcType=VARCHAR})
+    WHEN MATCHED THEN
+    update
+    <set>
+      <if test="DICT_KEYWD_DESC != null">
+        DICT_KEYWD_DESC = #{DICT_KEYWD_DESC,jdbcType=VARCHAR},
+      </if>
+      <if test="WORD_DICT_USE_YN != null">
+        WORD_DICT_USE_YN = #{WORD_DICT_USE_YN,jdbcType=CHAR},
+      </if>
+      <if test="DEL_YN != null">
+        DEL_YN = #{DEL_YN,jdbcType=CHAR},
+      </if>
+      <if test="REGR_ID != null">
+        REGR_ID = #{REGR_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="REGR_IP_ADDR != null">
+        REGR_IP_ADDR = #{REGR_IP_ADDR,jdbcType=VARCHAR},
+      </if>
+      <if test="REG_DT != null">
+        REG_DT = #{REG_DT,jdbcType=TIMESTAMP},
+      </if>
+      <if test="CHGR_ID != null">
+        CHGR_ID = #{CHGR_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="CHGR_IP_ADDR != null">
+        CHGR_IP_ADDR = #{CHGR_IP_ADDR,jdbcType=VARCHAR},
+      </if>
+      CHG_DT = SYSDATE
+    </set>
+    where DICT_KEYWD_NM = #{DICT_KEYWD_NM,jdbcType=VARCHAR}
+    WHEN NOT MATCHED THEN
+    insert
+    (DICT_ID, DICT_KEYWD_NM, DICT_KEYWD_DESC,
+      WORD_DICT_USE_YN, DEL_YN, REGR_ID, 
+      REGR_IP_ADDR, REG_DT, CHGR_ID, 
+      CHGR_IP_ADDR, CHG_DT)
+    values (#{DICT_ID,jdbcType=VARCHAR}, #{DICT_KEYWD_NM,jdbcType=VARCHAR}, #{DICT_KEYWD_DESC,jdbcType=VARCHAR},
+      #{WORD_DICT_USE_YN,jdbcType=CHAR}, #{DEL_YN,jdbcType=CHAR}, #{REGR_ID,jdbcType=VARCHAR}, 
+      #{REGR_IP_ADDR,jdbcType=VARCHAR}, SYSDATE, #{CHGR_ID,jdbcType=VARCHAR},
+      #{CHGR_IP_ADDR,jdbcType=VARCHAR}, SYSDATE)
+  </insert>
+  <insert id="insertSelective" parameterType="com.spo.cmmn.admin.sys.wordmng.model.TnWordDict">
+    <!--@mbg.generated-->
+    insert into TN_WORD_DICT
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="DICT_ID != null">
+        DICT_ID,
+      </if>
+      <if test="DICT_KEYWD_NM != null">
+        DICT_KEYWD_NM,
+      </if>
+      <if test="DICT_KEYWD_DESC != null">
+        DICT_KEYWD_DESC,
+      </if>
+      <if test="WORD_DICT_USE_YN != null">
+        WORD_DICT_USE_YN,
+      </if>
+      <if test="DEL_YN != null">
+        DEL_YN,
+      </if>
+      <if test="REGR_ID != null">
+        REGR_ID,
+      </if>
+      <if test="REGR_IP_ADDR != null">
+        REGR_IP_ADDR,
+      </if>
+      <if test="REG_DT != null">
+        REG_DT,
+      </if>
+      <if test="CHGR_ID != null">
+        CHGR_ID,
+      </if>
+      <if test="CHGR_IP_ADDR != null">
+        CHGR_IP_ADDR,
+      </if>
+      <if test="CHG_DT != null">
+        CHG_DT,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="DICT_ID != null">
+        #{DICT_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="DICT_KEYWD_NM != null">
+        #{DICT_KEYWD_NM,jdbcType=VARCHAR},
+      </if>
+      <if test="DICT_KEYWD_DESC != null">
+        #{DICT_KEYWD_DESC,jdbcType=VARCHAR},
+      </if>
+      <if test="WORD_DICT_USE_YN != null">
+        #{WORD_DICT_USE_YN,jdbcType=CHAR},
+      </if>
+      <if test="DEL_YN != null">
+        #{DEL_YN,jdbcType=CHAR},
+      </if>
+      <if test="REGR_ID != null">
+        #{REGR_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="REGR_IP_ADDR != null">
+        #{REGR_IP_ADDR,jdbcType=VARCHAR},
+      </if>
+      <if test="REG_DT == null">
+        #{REG_DT,jdbcType=TIMESTAMP},
+      </if>
+      <if test="CHGR_ID != null">
+        #{CHGR_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="CHGR_IP_ADDR != null">
+        #{CHGR_IP_ADDR,jdbcType=VARCHAR},
+      </if>
+      <if test="CHG_DT != null">
+        #{CHG_DT,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.spo.cmmn.admin.sys.wordmng.model.TnWordDict">
+    <!--@mbg.generated-->
+    update TN_WORD_DICT
+    <set>
+      <if test="DICT_KEYWD_NM != null">
+        DICT_KEYWD_NM = #{DICT_KEYWD_NM,jdbcType=VARCHAR},
+      </if>
+      <if test="DICT_KEYWD_DESC != null">
+        DICT_KEYWD_DESC = #{DICT_KEYWD_DESC,jdbcType=VARCHAR},
+      </if>
+      <if test="WORD_DICT_USE_YN != null">
+        WORD_DICT_USE_YN = #{WORD_DICT_USE_YN,jdbcType=CHAR},
+      </if>
+      <if test="DEL_YN != null">
+        DEL_YN = #{DEL_YN,jdbcType=CHAR},
+      </if>
+      <if test="REGR_ID != null">
+        REGR_ID = #{REGR_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="REGR_IP_ADDR != null">
+        REGR_IP_ADDR = #{REGR_IP_ADDR,jdbcType=VARCHAR},
+      </if>
+      <if test="REG_DT != null">
+        REG_DT = #{REG_DT,jdbcType=TIMESTAMP},
+      </if>
+      <if test="CHGR_ID != null">
+        CHGR_ID = #{CHGR_ID,jdbcType=VARCHAR},
+      </if>
+      <if test="CHGR_IP_ADDR != null">
+        CHGR_IP_ADDR = #{CHGR_IP_ADDR,jdbcType=VARCHAR},
+      </if>
+      CHG_DT = SYSDATE,
+    </set>
+    where DICT_ID = #{DICT_ID,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.spo.cmmn.admin.sys.wordmng.model.TnWordDict">
+    <!--@mbg.generated-->
+    update TN_WORD_DICT
+    set DICT_KEYWD_NM = #{DICT_KEYWD_NM,jdbcType=VARCHAR},
+      DICT_KEYWD_DESC = #{DICT_KEYWD_DESC,jdbcType=VARCHAR},
+      WORD_DICT_USE_YN = #{WORD_DICT_USE_YN,jdbcType=CHAR},
+      DEL_YN = #{DEL_YN,jdbcType=CHAR},
+      REGR_ID = #{REGR_ID,jdbcType=VARCHAR},
+      REGR_IP_ADDR = #{REGR_IP_ADDR,jdbcType=VARCHAR},
+      REG_DT = #{REG_DT,jdbcType=TIMESTAMP},
+      CHGR_ID = #{CHGR_ID,jdbcType=VARCHAR},
+      CHGR_IP_ADDR = #{CHGR_IP_ADDR,jdbcType=VARCHAR},
+      CHG_DT = #{CHG_DT,jdbcType=TIMESTAMP}
+    where DICT_ID = #{DICT_ID,jdbcType=VARCHAR}
+  </update>
+
+  <select id="selectByKeyWd" resultType="camelHashMap">
+    <!--@mbg.generated-->
+    select
+    <include refid="Base_Column_List" />
+    from TN_WORD_DICT
+    <where>
+      DEL_YN = 'N'
+      <if test="DICT_KEYWD_NM != null">
+        and DICT_KEYWD_NM = #{DICT_KEYWD_NM,jdbcType=VARCHAR}
+      </if>
+    </where>
+  </select>
+</mapper>

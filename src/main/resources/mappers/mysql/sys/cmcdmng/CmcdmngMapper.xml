@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.sys.cmcdmng.mapper.mysql.CmcdmngMapper">
+
+	
+    <!-- 
+		코드유형목록 조회
+	-->
+	<select id="selectListCmmnTyCd" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS "NO"
+		     , CMMN_TY_CD
+			 , CMMN_TY_CD_NM
+			 , CMMN_TY_CD_DESC
+			 , USE_YN
+			 , DEL_YN
+			 , REGR_IP_ADDR
+			 , REGR_ID
+			 , REG_DT
+			 , CHGR_ID
+			 , CHGR_IP_ADDR
+			 , CHG_DT
+			 , UP_CMMN_TY_CD
+		  FROM TC_CMMN_TY_CD
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND CMMN_TY_CD LIKE '%' || #{cmmnTyCd} || '%'
+		   AND CMMN_TY_CD_NM LIKE '%' || #{cmmnTyCdNm} || '%'
+	</select>
+	
+	<!-- 
+		상세코드목록 조회
+	-->
+	<select id="selectListCmmnCd" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS "NO"
+		     , CMMN_TY_CD
+		     , CMMN_CD
+		     , CMMN_CD_NM
+		     , CMMN_CD_ABBR_NM
+		     , CMMN_CD_REF_NM
+		     , CMMN_CD_DESC
+		     , USE_YN
+		     , DEL_YN
+		     , REGR_ID
+		     , REGR_IP_ADDR
+		     , REG_DT
+		     , CHGR_ID
+		     , CHGR_IP_ADDR
+		     , CHG_DT
+		     , UP_CMMN_CD
+		  FROM TC_CMMN_CD
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND CMMN_TY_CD = #{cmmnTyCd}
+		 ORDER BY CMMN_CD_NM ASC
+	</select>
+	
+	<!-- 
+		하위코드유형목록 조회
+	-->
+	<select id="selectListChildCd" parameterType="hashmap" resultType="camelHashMap">
+		SELECT *
+		  FROM (
+			 SELECT CMMN_TY_CD
+			      , ROWNUM AS NO
+			      , LEVEL AS LV
+			      , UP_CMMN_TY_CD
+			      , CHGR_IP_ADDR
+			      , CMMN_TY_CD_NM
+			      , CMMN_TY_CD_DESC
+			      , DEL_YN
+			      , REGR_ID
+			      , REG_DT
+			      , CHG_DT
+			      , CHGR_ID
+			      , REGR_IP_ADDR
+			      , USE_YN
+			      , CONNECT_BY_ISLEAF AS LEAF
+			   FROM TC_CMMN_TY_CD
+			  WHERE 1=1
+			    AND DEL_YN = 'N'
+			  START WITH CMMN_TY_CD = #{cmmnTyCd}
+			CONNECT BY PRIOR CMMN_TY_CD = UP_CMMN_TY_CD)
+		  WHERE 1=1
+		   AND LV = #{level}
+	</select>
+	
+	
+	<!-- 
+		코드유형 저장
+	-->	
+	<update id="saveCmmnTyCd" parameterType="hashmap">
+		MERGE INTO TC_CMMN_TY_CD
+		USING DUAL
+		ON ( CMMN_TY_CD = #{cmmnTyCd})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chgrId != null and chgrId != ''">CHGR_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHGR_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+		    <if test="upCmmnTyCd != null and upCmmnTyCd != ''">, UP_CMMN_TY_CD = #{upCmmnTyCd}</if>
+            <if test="cmmnTyCdNm != null and cmmnTyCdNm != ''">, CMMN_TY_CD_NM = #{cmmnTyCdNm}</if>
+            <if test="cmmnTyCdDesc != null and cmmnTyCdDesc != ''">, CMMN_TY_CD_DESC = #{cmmnTyCdDesc}</if>
+            <if test="useYn != null and useYn != ''">, USE_YN = #{useYn}</if>
+		WHEN NOT MATCHED THEN
+		INSERT
+			( CMMN_TY_CD
+            , UP_CMMN_TY_CD
+            , CMMN_TY_CD_NM
+            , CMMN_TY_CD_DESC
+            , USE_YN
+            , DEL_YN
+            , REGR_ID
+            , REGR_IP_ADDR
+            , REG_DT
+            , CHGR_ID
+            , CHGR_IP_ADDR
+            , CHG_DT)
+		VALUES
+			( #{cmmnTyCd}
+            , #{upCmmnTyCd}
+            , #{cmmnTyCdNm}
+            , #{cmmnTyCdDesc}
+            , #{useYn}
+            , 'N'
+            , #{regrId}
+            , #{regrIpAddr}
+            , SYSDATE
+            , #{chgrId}
+            , #{chgrIpAddr}
+            , SYSDATE)
+	</update>	
+	
+			  
+	
+	<!-- 
+		코드유형 삭제
+	-->	
+	<update id="deleteCmmnTyCd" parameterType="hashmap">
+		UPDATE TC_CMMN_TY_CD
+		   SET DEL_YN = 'Y'
+		 WHERE CMMN_TY_CD IN
+		 <foreach item="item" index="index" collection="cmmnTyCd" open="(" separator="," close=")">
+		 	#{item}
+		 </foreach>
+	</update>
+	
+	<!-- 
+		상세코드 저장
+	-->	
+	<update id="saveCmmnCd" parameterType="hashmap">
+		MERGE INTO TC_CMMN_CD
+		USING DUAL
+		ON ( CMMN_TY_CD = #{cmmnTyCd} AND CMMN_CD = #{cmmnCd})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chgrId != null and chgrId != ''">CHGR_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHGR_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+		    <if test="cmmnCdNm != null and cmmnCdNm != ''">, CMMN_CD_NM = #{cmmnCdNm}</if>
+		    <if test="cmmnCdAbbrNm != null and cmmnCdAbbrNm != ''">, CMMN_CD_ABBR_NM = #{cmmnCdAbbrNm}</if>
+		    <if test="cmmnCdDesc != null and cmmnCdDesc != ''">, CMMN_CD_DESC = #{cmmnCdDesc}</if>
+		    <if test="cmmnCdRefNm != null and cmmnCdRefNm != ''">, CMMN_CD_REF_NM = #{cmmnCdRefNm}</if>
+		    <if test="useYn != null and useYn != ''">, USE_YN = #{useYn}</if>
+		    <if test="cmmnCdSn != null and cmmnCdSn != ''">, CMMN_CD_SN = #{cmmnCdSn}</if>
+		WHEN NOT MATCHED THEN
+		INSERT
+			( CMMN_TY_CD
+			, CMMN_CD
+			, CMMN_CD_NM
+			, CMMN_CD_ABBR_NM
+			, CMMN_CD_DESC
+			, CMMN_CD_REF_NM
+			, CMMN_CD_SN
+			, USE_YN
+			, DEL_YN
+			, REGR_ID
+			, REGR_IP_ADDR
+			, REG_DT
+			, CHGR_ID
+			, CHGR_IP_ADDR
+			, CHG_DT
+			, UP_CMMN_CD)
+		VALUES
+			( #{cmmnTyCd}
+			, #{cmmnCd}
+			, #{cmmnCdNm}
+			, #{cmmnCdAbbrNm}
+			, #{cmmnCdDesc}
+			, #{cmmnCdRefNm}
+			, #{cmmnCdSn}
+			, #{useYn}
+			, 'N'
+			, #{regrId}
+			, #{regrIpAddr}
+			, SYSDATE
+			, #{chgrId}
+			, #{chgrIpAddr}
+			, SYSDATE
+			, #{upCmmnCd})
+	</update>	
+	
+	<!-- 
+		상세코드 삭제
+	-->	
+	<update id="deleteCmmnCd" parameterType="hashmap">
+		UPDATE TC_CMMN_CD
+		   SET DEL_YN = 'Y'
+		 <choose>
+			 <when test="cmmnCd != null and cmmnCd != ''">
+			   WHERE CMMN_TY_CD = #{cmmnTyCd}
+				 AND CMMN_CD IN 
+				 <foreach item="item" index="index" collection="cmmnCd" open="(" separator="," close=")">
+				 	#{item}
+				 </foreach>
+			 </when>
+			 <otherwise>
+			 	WHERE CMMN_TY_CD IN 
+				 <foreach item="item" index="index" collection="cmmnTyCd" open="(" separator="," close=")">
+				 	#{item}
+				 </foreach>
+			 </otherwise>
+		 </choose>
+	</update>
+
+	<select id="selectCrimeListCmmnTyCd" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS "NO"
+		, CMMN_TY_CD
+		, CMMN_TY_CD_NM
+		, CMMN_TY_CD_DESC
+		, USE_YN
+		, DEL_YN
+		, REGR_IP_ADDR
+		, REGR_ID
+		, REG_DT
+		, CHGR_ID
+		, CHGR_IP_ADDR
+		, CHG_DT
+		, UP_CMMN_TY_CD
+		FROM TC_CMMN_TY_CD
+		WHERE 1=1
+		AND DEL_YN = 'N'
+		AND CMMN_TY_CD_NM LIKE '%죄명%'
+	</select>
+
+	<select id="selectTopickListCmmnTyCd" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS "NO"
+			 , CMMN_TY_CD
+			 , CMMN_TY_CD_NM
+			 , CMMN_TY_CD_DESC
+			 , USE_YN
+			 , DEL_YN
+			 , REGR_IP_ADDR
+			 , REGR_ID
+			 , REG_DT
+			 , CHGR_ID
+			 , CHGR_IP_ADDR
+			 , CHG_DT
+			 , UP_CMMN_TY_CD
+		FROM TC_CMMN_TY_CD
+		WHERE 1=1
+		  AND DEL_YN = 'N'
+		  AND CMMN_TY_CD_NM LIKE '%토픽%'
+	</select>
+</mapper>

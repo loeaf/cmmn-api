@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.sys.mnmng.mapper.mysql.MnmngMapper">
+
+	
+    <!-- 
+		메뉴트리 조회 
+	-->
+	<select id="selectListMenu" parameterType="hashmap" resultType="camelHashMap">
+		SELECT LEVEL
+			 , MENU_ID
+			 , MENU_NM
+			 , UP_MENU_ID
+			 , MENU_USE_YN
+		  FROM TN_MENU
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		 START WITH UP_MENU_ID IS NULL
+	   CONNECT BY PRIOR MENU_ID = UP_MENU_ID
+		 ORDER BY LEVEL, REG_DT	    
+	</select>
+	
+	<!-- 
+		선택 메뉴트리 상세조회
+	-->
+	<select id="selectMenuDetail" parameterType="hashmap" resultType="camelHashMap">
+		SELECT MENU_ID
+			, MENU_NM
+			, UP_MENU_ID
+			, MENU_USE_YN
+			, PGM_PATH_NM
+		  FROM TN_MENU
+		 WHERE 1=1
+		   AND DEL_YN != 'Y'
+		   AND MENU_ID = #{menuId}
+	</select>
+	
+	<!-- 
+		메뉴정보 > 프로그램경로 콤보박스 목록
+	-->
+	<select id="selectListMenuPrgmCmbo" parameterType="hashmap" resultType="camelHashMap">
+		SELECT A.PGM_ID AS CODE
+			 , A.SRVC_URI_ADDR AS CODE_NAME
+		  FROM TN_PGM A, TN_MENU_PGM B
+		 WHERE 1=1
+		   AND A.DEL_YN != 'Y'
+		   AND A.PGM_ID = B.PGM_ID
+		   AND B.MENU_ID = #{menuId}
+	</select>
+	
+	<!-- 
+		선택 메뉴트리 프로그램 목록 조회
+	-->
+	<select id="selectListMenuProgram" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS NO
+			 , A.PGM_ID
+			, A.PGM_TY_CD
+			, A.PGM_NM
+			, A.SRVC_URI_ADDR
+			, A.PGM_USE_YN
+		  FROM TN_PGM A, TN_MENU_PGM B
+		 WHERE 1=1
+		   AND A.DEL_YN != 'Y'
+		   AND A.PGM_ID = B.PGM_ID
+		   AND B.MENU_ID = #{menuId}
+	   <if test="pgmNm != null and pgmNm != ''">
+		   AND A.PGM_NM = #{pgmNm}
+	   </if>
+	</select>
+	
+	<!-- 
+		메뉴 정보 생성/변경
+	-->	
+	<update id="modifyMenu" parameterType="hashmap">
+		MERGE INTO TN_MENU
+		USING DUAL
+		ON ( MENU_ID = #{menuId})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chnrgId != null and chnrgId != ''">CHNRG_ID = #{chnrgId}</if>
+			<if test="chnrgIpAddr != null and chnrgIpAddr != ''">, CHNRG_IP_ADDR = #{chnrgIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+			<if test="menuNm != null and menuNm != ''">, MENU_NM = #{menuNm}</if>
+			<if test="pgmPathNm != null and pgmPathNm != ''">, PGM_PATH_NM = #{pgmPathNm}</if>
+			<if test="menuUseYn != null and menuUseYn != ''">, MENU_USE_YN = #{menuUseYn}</if>
+			<if test="upMenuId != null and upMenuId != ''">, UP_MENU_ID = #{upMenuId}</if>
+		WHEN NOT MATCHED THEN
+		INSERT
+		( MENU_ID
+		, RGTR_ID
+		, REG_DT
+		, DEL_YN
+		, MENU_NM
+		, PGM_PATH_NM
+		, MENU_USE_YN
+		, UP_MENU_ID
+		, RGTR_IP_ADDR)
+		VALUES
+		( #{menuId}
+		, #{rgtrId}
+		, SYSDATE
+		, 'N'
+		, #{menuNm}
+		, #{pgmPathNm}
+		, #{menuUseYn}
+		, #{upMenuId}
+		, #{rgtrIpAddr})
+	</update>	
+	
+	<!-- 
+		메뉴 정보 삭제
+	-->	
+	<update id="deleteMenu" parameterType="hashmap">
+		UPDATE TN_MENU
+		  SET DEL_YN = 'Y'
+		WHERE MENU_ID = #{menuId}
+	</update>
+	
+	<!-- 
+		프로그램 생성/변경
+	-->	
+	<update id="modifyProgram" parameterType="hashmap">
+		MERGE INTO TN_PGM
+		USING DUAL
+		ON (PGM_ID = #{pgmId})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chgrId != null and chgrId != ''">CHNRG_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHNRG_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, PGM_TY_CD = #{pgmTyCd}
+			, PGM_NM = #{pgmNm}
+			, SRVC_URI_ADDR = #{srvcUriAddr}
+			, VLD_STRT_DT = TO_DATE(#{vldStrtDt},'YYYYMMDDHH24MISS')
+			, VLD_END_DT = TO_DATE(#{vldEndDt},'YYYYMMDDHH24MISS')
+			, PGM_USE_YN = #{pgmUseYn}
+		WHEN NOT MATCHED THEN
+		INSERT
+			( PGM_ID
+			, DEL_YN
+			, PGM_TY_CD
+			, PGM_NM
+			, SRVC_URI_ADDR
+			, VLD_STRT_DT
+			, VLD_END_DT
+			, PGM_USE_YN
+			, RGTR_ID
+			, REG_DT
+			, RGTR_IP_ADDR)
+			VALUES
+			( #{pgmId}
+			, 'N'
+			, #{pgmTyCd}
+			, #{pgmNm}
+			, #{srvcUriAddr}
+			, TO_DATE(#{vldStrtDt},'YYYYMMDDHH24MISS')
+			, TO_DATE(#{vldEndDt},'YYYYMMDDHH24MISS')
+			, #{pgmUseYn}
+			, #{regrId}
+			, SYSDATE
+			, #{regrIpAddr})
+	</update>
+	
+	<!-- 
+		메뉴 프로그램 생성/변경
+	-->	
+	<update id="modifyMenuProgramm" parameterType="hashmap">
+		MERGE INTO TN_MENU_PGM
+		USING DUAL
+		ON ( MENU_ID = #{menuId} AND PGM_ID = #{pgmId})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chgrId != null and chgrId != ''">CHNRG_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHNRG_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+			, MENU_SN = #{menuSn}
+		WHEN NOT MATCHED THEN
+		INSERT
+			( MENU_ID
+			, PGM_ID
+			, MENU_SN
+			, DEL_YN
+			, RGTR_ID
+			, REG_DT
+			, RGTR_IP_ADDR)
+			VALUES
+			( #{menuId}
+			, #{pgmId}
+			, #{menuSn}
+			, 'N'
+			, #{regrId}
+			, SYSDATE
+			, #{regrIpAddr})
+	</update>	
+	
+	<!-- 
+		프로그램 다중 삭제
+	-->	
+	<update id="mulDeleteProgram" parameterType="hashmap">
+		UPDATE TN_PGM
+		   SET DEL_YN = 'Y'
+		 WHERE PGM_ID IN 
+		 	<foreach item="item" index="index" collection="pgmId" open="(" separator="," close=")">
+			 	#{item}
+			</foreach>
+	</update>
+	
+	<!-- 
+		메뉴 프로그램 다중 삭제
+	-->	
+	<update id="mulDeleteMenuProgram" parameterType="hashmap">
+		UPDATE TN_MENU_PGM
+		   SET DEL_YN = 'Y'
+	 	 WHERE MENU_ID = #{menuId}
+		   AND PGM_ID IN
+		   <foreach item="item" index="index" collection="pgmId" open="(" separator="," close=")">
+			 	#{item}
+			</foreach>
+	</update>	
+ </mapper>

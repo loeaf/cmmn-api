@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.sys.usrmng.mapper.mysql.UsrmngMapper">
+
+
+	<!--
+        조직 목록 조회
+    -->
+	<select id="selectListOrgnzt" parameterType="hashmap" resultType="camelHashMap">
+		 SELECT LEVEL
+		      , CONNECT_BY_ISLEAF AS LEAF
+		      , LPAD(' ', 2*(LEVEL - 1)) || DEPT_NM  LEVEL_DEPT_NM
+		      , DEPT_CD
+		      , DEPT_NM
+		      , UP_DEPT_CD
+		   FROM (SELECT INST_CD AS DEPT_CD
+				      , INST_NM AS DEPT_NM
+				      , '' AS UP_DEPT_CD
+				   FROM TN_INST
+				  WHERE DEL_YN = 'N'
+				  UNION ALL
+				 SELECT DEPT_CD
+				      , DEPT_NM
+				      , DECODE(UP_DEPT_CD, '*', INST_CD, UP_DEPT_CD) UP_DEPT_CD
+				   FROM TN_ORG
+				  WHERE DEL_YN = 'N'
+				    AND INST_CL_CD = #{instClCd})
+		  WHERE 1=1
+		  START WITH UP_DEPT_CD IS NULL
+		CONNECT BY PRIOR DEPT_CD = UP_DEPT_CD	
+	</select>
+
+	<!--
+		부서 정보 조회(조직목록 선택 시)
+	-->
+	<select id="selectOrgnztDetail" parameterType="hashmap" resultType="camelHashMap">
+		SELECT A.DEPT_CD
+			 , A.REGR_ID
+			 , A.REG_DT
+			 , A.CHGR_ID
+			 , A.CHG_DT
+			 , A.DEL_YN
+			 , A.INST_CD
+			 , (SELECT B.INST_NM 
+		          FROM TN_INST B
+		         WHERE B.INST_CD = A.INST_CD
+		           AND B.DEL_YN = 'N') AS INST_NM
+			 , A.DEPT_NM
+			 , A.DEPT_DESC
+			 , A.REGR_IP_ADDR
+			 , A.CHGR_IP_ADDR
+		  FROM TN_ORG A
+		 WHERE 1=1
+		   AND A.DEL_YN = 'N'
+		   AND A.DEPT_CD = #{deptCd}
+		   AND A.INST_CD = #{instCd}
+	</select>
+
+	<!--
+		부서코드 중복체크
+	-->
+	<select id="checkOrgnztCode" parameterType="hashmap" resultType="int">
+		SELECT COUNT(*) AS CNT
+		  FROM TN_ORG
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND DEPT_CD = #{deptCd}
+		   AND INST_CD = #{instCd}
+	</select>
+	
+	<!--
+		유저 비밀번호 조회
+	-->
+	<select id="selectUserPwd" parameterType="hashmap" resultType="string">
+		SELECT A.USER_PSWD
+		  FROM TN_USER A
+		 WHERE A.USER_ID = #{userId}
+	</select>
+
+	<!--
+		사용자 목록 조회(조직목록 선택 시)
+	-->
+	<select id="selectListOrgnztUser" parameterType="hashmap" resultType="camelHashMap">
+		SELECT ROWNUM AS NO
+		     , A.USER_SE_CD
+		     , B.INST_CD
+		     , (SELECT C.INST_NM 
+		          FROM TN_INST C
+		         WHERE C.INST_CD = B.INST_CD
+		           AND C.DEL_YN = 'N') AS INST_NM
+		     , A.DEPT_CD
+		     , B.DEPT_NM
+		     , A.USER_ID
+		     , A.USER_NM
+		     , A.JBTTL_CD
+		     , A.JBGD_CD
+		     , A.JBGD_NM
+		     , A.MOBILE_NO
+		     , A.EML_ADDR
+		     , A.TELNO
+		     , A.ACS_IP_ADDR
+		     , A.ACS_MAC_ADDR
+		  FROM TN_USER A, TN_ORG B
+		 WHERE 1 = 1
+		   AND A.DEL_YN = 'N'
+		   AND A.DEPT_CD = B.DEPT_CD
+		   AND A.USER_SE_CD = #{userSeCd}
+		   AND A.DEPT_CD = #{deptCd}
+	</select>
+
+	<!--
+		사용자 정보 조회(사용자 목록 선택 시)
+	-->
+	<select id="selectOrgnztUserDetail" parameterType="hashmap" resultType="camelHashMap">
+		SELECT A.USER_ID
+		     , A.USER_PSWD
+		     , A.USER_NM
+		     , A.MOBILE_NO
+		     , A.TELNO
+		     , A.EML_ADDR
+		     , A.JBTTL_CD
+			 , A.JBGD_CD
+			 , A.JBGD_NM
+			 , A.ACS_IP_ADDR
+			 , A.ACS_MAC_ADDR
+			 , C.INST_CD
+		     , C.INST_NM
+		     , A.DEPT_CD
+		     , D.DEPT_NM
+		     , (SELECT LISTAGG(C.AUTHRT_ID , ',') WITHIN GROUP (ORDER BY C.AUTHRT_ID) AS AUTHRT_ID 
+		          FROM TN_USER_AUTHRT_GRNT C
+		         WHERE C.USER_ID = A.USER_ID
+		           AND C.DEL_YN = 'N') AS AUTHRT_ID
+		     , (SELECT LISTAGG(D.AUTHRT_NM , ',') WITHIN GROUP (ORDER BY D.AUTHRT_NM) AS AUTHRT_NM
+		          FROM TN_USER_AUTHRT_GRNT C
+		             , TN_AUTHRT D
+		         WHERE C.USER_ID = A.USER_ID
+		           AND C.AUTHRT_ID = D.AUTHRT_ID 
+		           AND C.DEL_YN = 'N') AS AUTHRT_NM
+		     , A.REGR_ID
+			 , A.REG_DT
+			 , A.REGR_IP_ADDR
+			 , A.CHGR_ID
+			 , A.CHG_DT
+			 , A.CHGR_IP_ADDR
+		  FROM TN_USER A
+		     , TN_INST C
+		     , TN_ORG D
+		 WHERE A.DEPT_CD = D.DEPT_CD
+		   AND C.INST_CD = D.INST_CD
+		   AND A.DEL_YN = 'N'
+		   AND A.USER_SE_CD = #{userSeCd}
+		   AND A.USER_ID = #{userId}
+	</select>
+
+	<!--
+		사용자 ID 중복체크
+	-->
+	<select id="checkOrgnztUserId" parameterType="hashmap" resultType="int">
+		SELECT COUNT(*) AS CNT
+		  FROM TN_USER
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+		   AND USER_ID = #{userId}
+	</select>
+
+	<!--
+		부서 정보 등록/수정
+	-->
+	<update id="modifyOrgnzt" parameterType="hashmap">
+		MERGE INTO TN_ORG
+		USING DUAL
+		ON ( DEPT_CD = #{deptCd} AND INST_CD = #{instCd})
+		WHEN MATCHED THEN
+		UPDATE SET			
+			<if test="chgrId != null and chgrId != ''">CHGR_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHGR_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+			<if test="upDeptCd != null and upDeptCd != ''">, UP_DEPT_CD = #{upDeptCd}</if>
+			<if test="deptNm != null and deptNm != ''">, DEPT_NM = #{deptNm}</if>
+		    <if test="deptDesc != null and deptDesc != ''">, DEPT_DESC = #{deptDesc}</if>
+		    <if test="instClCd != null and instClCd != ''">, INST_CL_CD = #{instClCd}</if>
+		WHEN NOT MATCHED THEN
+		INSERT
+			( DEPT_CD
+			, INST_CD
+			, UP_DEPT_CD
+			, DEPT_NM
+			, DEPT_DESC
+			, INST_CL_CD
+			, DEL_YN
+			, REGR_ID
+			, REGR_IP_ADDR
+			, REG_DT
+			, CHGR_ID
+			, CHGR_IP_ADDR
+			, CHG_DT)
+		VALUES
+			( #{deptCd}
+			, #{instCd}
+			, #{upDeptCd}
+			, #{deptNm}
+			, #{deptDesc}
+			, #{instClCd}
+			, 'N'
+			, #{regrId}
+			, #{regrIpAddr}
+			, SYSDATE
+			, #{chgrId}
+			, #{chgrIpAddr}
+			, SYSDATE)
+	</update>
+
+	<!--
+		부서 정보 삭제
+	-->
+	<update id="deleteOrgnzt" parameterType="hashmap">
+		UPDATE TN_ORG
+		   SET DEL_YN = 'Y'	
+		 WHERE DEPT_CD = #{deptCd}
+	</update>
+
+	<!--
+		사용자 정보 등록/수정 1.사용자
+	-->
+	<update id="modifyOrgnztUser" parameterType="hashmap">
+		MERGE INTO TN_USER
+		USING DUAL
+		ON ( USER_ID = #{userId})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chgrId != null and chgrId != ''">CHGR_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHGR_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+		    <if test="userNm != null and userNm != ''">, USER_NM = #{userNm}</if>
+			<if test="userPswd != null and userPswd != ''">, USER_PSWD = #{userPswd}</if>
+			, USER_SE_CD = #{userSeCd}
+			, DEPT_CD = #{deptCd}
+			, JBTTL_CD = #{jbttlCd}
+			, JBGD_CD = #{jbgdCd}
+			, MOBILE_NO = #{mobileNo}
+			, EML_ADDR = #{emlAddr}
+			, TELNO = #{telno}
+			<if test="acsIpAddr != null and acsIpAddr != ''">, ACS_IP_ADDR = #{acsIpAddr}</if>
+			<if test="acsMacAddr != null and acsMacAddr != ''">, ACS_MAC_ADDR = #{acsMacAddr}</if>
+			, JBGD_NM = #{jbgdNm}
+		WHEN NOT MATCHED THEN
+		INSERT
+			( USER_ID
+			, USER_NM
+			, USER_PSWD
+			, USER_SE_CD
+			, DEPT_CD
+			, JBTTL_CD
+			, JBGD_CD
+			, MOBILE_NO
+			, EML_ADDR
+			, TELNO
+			, ACS_IP_ADDR
+			, ACS_MAC_ADDR
+			, JBGD_NM
+			, DEL_YN
+			, REGR_ID
+			, REGR_IP_ADDR
+			, REG_DT
+			, CHGR_ID
+			, CHGR_IP_ADDR
+			, CHG_DT)
+		VALUES
+			( #{userId}
+			, #{userNm}
+			, #{userPswd}
+			, #{userSeCd}
+			, #{deptCd}
+			, #{jbttlCd}
+			, #{jbgdCd}
+			, #{mobileNo}
+			, #{emlAddr}
+			, #{telno}
+			, #{acsIpAddr}
+			, #{acsMacAddr}
+			, #{jbgdNm}
+			, 'N'
+			, #{regrId}
+			, #{regrIpAddr}
+			, SYSDATE
+			, #{chgrId}
+			, #{chgrIpAddr}
+			, SYSDATE)
+	</update>
+	
+	<!-- 
+		사용자 정보 등록/수정 2.사용자 권한
+	-->	
+	<update id="modifyOrgnztUserAuthrt" parameterType="hashmap">
+		MERGE INTO TN_USER_AUTHRT_GRNT
+		USING DUAL
+		ON ( USER_ID = #{userId} AND AUTHRT_ID = #{authrtItem})
+		WHEN MATCHED THEN
+		UPDATE SET
+			<if test="chgrId != null and chgrId != ''">CHGR_ID = #{chgrId}</if>
+			<if test="chgrIpAddr != null and chgrIpAddr != ''">, CHGR_IP_ADDR = #{chgrIpAddr}</if>
+			, CHG_DT = SYSDATE
+			, DEL_YN = 'N'
+			<if test="authrtVldStrtDt != null and authrtVldStrtDt != ''">, AUTHRT_VLD_STRT_DT = TO_DATE(#{authrtVldStrtDt},'YYYYMMDDHH24MISS')</if>
+			<if test="authrtVldEndDt != null and authrtVldEndDt != ''">, AUTHRT_VLD_END_DT = TO_DATE(#{authrtVldEndDt},'YYYYMMDDHH24MISS')</if>
+		WHEN NOT MATCHED THEN
+		INSERT
+			( USER_ID
+		    , AUTHRT_ID
+		    , AUTHRT_VLD_STRT_DT
+		    , REGR_ID
+		    , REG_DT
+		    , CHGR_ID
+		    , CHG_DT
+		    , DEL_YN
+		    , AUTHRT_VLD_END_DT
+		    , REGR_IP_ADDR
+		    , CHGR_IP_ADDR)
+		VALUES
+			( #{userId}
+		    , #{authrtItem}
+		    , TO_DATE(#{authrtVldStrtDt},'YYYYMMDDHH24MISS')
+		    , #{regrId}
+		    , SYSDATE
+		    , #{chgrId}
+		    , SYSDATE
+		    , 'N'
+		    , TO_DATE(#{authrtVldEndDt},'YYYYMMDDHH24MISS')
+		    , #{regrIpAddr}
+		    , #{chgrIpAddr})
+	</update>
+
+	<!--
+		사용자 정보 삭제 1.사용자
+	-->
+	<update id="deleteOrgnztUser" parameterType="string">
+		UPDATE TN_USER
+		   SET DEL_YN = 'Y'
+		 WHERE USER_ID IN 
+		 	<foreach item="item" index="index" collection="userId" open="(" separator="," close=")">
+			 	#{item}
+			</foreach>
+	</update>
+	
+	<!-- 
+		사용자 정보 삭제 2.사용자 권한
+	-->	
+	<delete id="deleteOrgnztUserAuthrt" parameterType="string">
+		DELETE TN_USER_AUTHRT_GRNT
+		 WHERE USER_ID IN 
+		 	<foreach item="item" index="index" collection="userId" open="(" separator="," close=")">
+			 	#{item}
+			</foreach>
+	</delete>
+	
+	<!-- 
+		사용자 정보 삭제 (단일)
+	-->	
+	<delete id="deleteOrgnztUserAuthrtSingle" parameterType="hashmap">
+		DELETE TN_USER_AUTHRT_GRNT
+		 WHERE USER_ID = #{userId}
+	</delete>
+
+</mapper>

@@ -1,0 +1,73 @@
+package com.spo.cmmn.admin.config;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.ApiKey;
+import springfox.documentation.service.AuthorizationScope;
+import springfox.documentation.service.SecurityReference;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
+@Configuration
+@EnableSwagger2
+public class SwaggerConfig {
+
+	private ApiInfo apiInfo() {
+		return new ApiInfoBuilder().title("spo-cmmn").description("cmmn").build();
+	}
+
+	@Bean
+	public Docket api() {
+        return new Docket(DocumentationType.SWAGGER_2)
+        		.pathMapping("/")
+                .useDefaultResponseMessages(false)
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.spo.cmmn"))
+                .paths(PathSelectors.ant("/api/**"))
+                .build()
+                .securityContexts(Arrays.asList(securityContext()))
+                .securitySchemes(Arrays.asList(apiJwtToken(), apiMenuId(), apiMngrRoleCd()));
+
+    }
+
+    private ApiKey apiJwtToken() {
+        return new ApiKey("JWT", "token", "header");
+    }
+
+    private ApiKey apiMenuId() {
+        return new ApiKey("MENU ID(ex: PM-DF-COMM-P0001)", "menuId", "header");
+    }
+    
+    private ApiKey apiMngrRoleCd() {
+        return new ApiKey("Incident Role Code(11,21)", "mngrRoleCd", "header");
+    }
+
+    private SecurityContext securityContext() {
+        return springfox
+                .documentation
+                .spi.service
+                .contexts
+                .SecurityContext
+                .builder()
+                .securityReferences(defaultAuth()).forPaths(PathSelectors.any()).build();
+    }
+
+    List<SecurityReference> defaultAuth() {
+        AuthorizationScope authorizationScope = new AuthorizationScope("global", "accessEverything");
+        AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
+        authorizationScopes[0] = authorizationScope;
+        return Arrays.asList(new SecurityReference("JWT", authorizationScopes), new SecurityReference("MENU ID(ex: PM-DF-COMM-P0001)", authorizationScopes), new SecurityReference("Incident Role Code(11,21)", authorizationScopes));
+    }
+
+
+}

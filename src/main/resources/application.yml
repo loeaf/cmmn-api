@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    active: loc
+
+
+
+incdnt :
+  ndems : http://172.50.17.206:1103

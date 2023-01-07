@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.stats.mapper.mysql.CmmnStatsMapper">
+
+	<!-- WHERE 조건에 날짜가 들어가지 않는 이유는, 전체기간도 같이 조회해야하기 때문에 CASE WHEN 절에 들어가 있습니다.
+	     2022.12.20 기준 TH_CNTN_LOG 테이블이 DB에 존재 하지 않아서 일단 주석처리 해놓았고, 추후 테이블이 생기면 조인해주시면 됩니다.
+	     테스트용으로 CASE WHEN 절 안에 A.INST_SE_CD 를 넣어놨는데 나중에 테이블이 정해지면 맞게 수정해주시면 됩니다. -->
+	<select id="selectByInstRsltList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT A.INST_CD, A.INST_NM,
+			   COUNT(B.USER_ID) AS USER_CNT,
+			   <!-- SUM(CASE WHEN TO_CHAR(C.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS USED_CNT, -->
+   			   <!-- SUM(CASE WHEN C.LOG_SE_CD = '1' AND TO_CHAR(C.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS EVDNC_ADD_CNT, -->
+			   SUM(CASE WHEN TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS USED_CNT,
+			   SUM(CASE WHEN A.INST_SE_CD = 'EVDNC_ADD_CNT' AND TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS EVDNC_ADD_CNT,
+			   SUM(CASE WHEN TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS USER_REG_CNT,
+			   <!-- SUM(CASE WHEN C.LOG_SE_CD = '2' AND TO_CHAR(C.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS INCDNT_ADD_CNT, -->
+			   <!-- SUM(CASE WHEN C.LOG_SE_CD = '3' AND TO_CHAR(C.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS ANLY_USED_CNT, -->
+			   <!-- COUNT(C.LGN_ID) AS REAL_USER_CNT -->
+			   SUM(CASE WHEN A.INST_SE_CD = 'INCDNT_ADD_CNT' AND TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS INCDNT_ADD_CNT,
+			   SUM(CASE WHEN A.INST_SE_CD = 'ANLY_USED_CNT' AND TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '9999-12-31') THEN 1 ELSE 0 END) AS ANLY_USED_CNT,
+			   COUNT(B.USER_ID) AS REAL_USER_CNT,
+			   COUNT(A.INST_CD) AS CRNT_USER_CNT<!-- CRNT_USER_CNT는 세션에서 처리해야합니다 -->
+		  FROM TN_INST A, (SELECT Z.INST_CD, Y.USER_ID, Y.REG_DT
+		  								 FROM TN_ORG Z, TN_USER Y
+		  								WHERE Z.DEPT_CD = Y.DEPT_CD
+		  								  AND Z.DEL_YN = 'N'
+		  								  AND Y.DEL_YN = 'N') B <!-- ,
+			   TH_CNTN_LOG C -->
+		 WHERE A.INST_CD = B.INST_CD(+)
+		   <!-- AND A.INST_CD = C.INST_CD(+) -->
+		   AND A.DEL_YN = 'N'
+	   <if test="instCd != '' and instCd != null">
+		   AND A.INST_CD = #{instCd}
+	   </if>
+		 GROUP BY A.INST_CD, A.INST_NM
+		 ORDER BY A.INST_CD
+	</select>
+	
+	<!--  -->
+	<select id="selectConnStatsList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT INST_CD, INST_NM,
+			   SUM(CASE WHEN INST_SE_CD = 'TRANS' THEN 1 ELSE 0 END) AS TRANS_CNT,
+			   SUM(CASE WHEN INST_SE_CD = 'ACPT' THEN 1 ELSE 0 END) AS ACPT_CNT,
+			   SUM(CASE WHEN INST_SE_CD = 'UNACPT' THEN 1 ELSE 0 END) AS UN_ACPT_CNT,
+			   SUM(CASE WHEN INST_SE_CD = 'DSCDETRST' THEN 1 ELSE 0 END) AS DSCD_ETRST_CNT
+		  FROM TN_INST ti
+		 WHERE 1=1
+		   AND DEL_YN = 'N'
+	   <if test="instCd != '' and instCd != null">
+		   AND TI.INST_CD = #{instCd}
+	   </if>
+	   <if test="endDt != '' and endDt != null">
+	   		<if test="startDt != '' and startDt != null">
+	   		AND TO_CHAR(TI.REG_DT, 'YYYY-MM-DD') BETWEEN #{startDt} AND #{endDt}
+	   		</if>
+	   </if>
+		 GROUP BY INST_CD, INST_NM
+	</select>
+
+	<!-- CASE WHEN 안에 있는 조건(INST_SE_CD = ?)의 INST_SE_CD 컬럼을 추후에 INLINE SUB QUERY A테이블에서 조회된 디지털 증거 유형 코드 컬럼으로 변경
+	     샘플에선 DMN.DGT_EVDNC_MEDIA_TY_CD
+	 -->
+	<select id="selectMediaInfoStatsList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT INST_CD, INST_NM,
+			   SUM((CASE WHEN INST_SE_CD = 'M13' THEN 1 ELSE 0 END )) AS COMPUTER,
+			   SUM((CASE WHEN INST_SE_CD = 'M30' THEN 1 ELSE 0 END )) AS MOBILE,
+			   SUM((CASE WHEN INST_SE_CD = 'M41' THEN 1 ELSE 0 END )) AS USB,
+			   SUM((CASE WHEN INST_SE_CD = 'M42' THEN 1 ELSE 0 END )) AS CD_DVD,
+			   SUM((CASE WHEN INST_SE_CD = 'M43' THEN 1 ELSE 0 END )) AS EXT_HDD,
+			   SUM((CASE WHEN INST_SE_CD = 'M88' THEN 1 ELSE 0 END )) AS DATA_FILE,
+			   SUM((CASE WHEN INST_SE_CD = 'M99' THEN 1 ELSE 0 END )) AS ETC
+		  FROM TN_INST TI<!--, (SELECT DIN.INST, DMN.DGT_EVDNC_MEDIA_TY_CD
+		  									FROM NDF_INV001_ADM.DM_INCDN_N DIN, NDF_INV001_ADM.DM_MEDIA_N DMN, ( SELECT CMMN_CD FROM NDF_COM_ADM.TC_CMMN_CD WHERE DEL_YN = 'N' AND CMMN_TY_CD = 'ND1301') TCC
+		  								   WHERE DIN.INCDN_ID = DMN.INCDN_ID
+		  								     AND DMN.DGT_EVDNC_MEDIA_TY_CD = TCC.CMMN_CD
+		  								     AND DMN.DEL_YN = 'N'
+		  								     AND DIN.DEL_YN = 'N'
+		  								     AND TO_CHAR(DMN.FRST_REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '2022-12-31')) A
+		 WHERE TI.INST_CD = A.INST_CD(+)-->
+		 WHERE 1=1
+		   AND TI.DEL_YN = 'N'
+	   <if test="instCd != '' and instCd!= null">
+		   AND TI.INST_CD = #{instCd}
+	   </if>
+		 GROUP BY TI.INST_CD, TI.INST_NM
+		 ORDER BY TI.INST_CD
+	</select>
+	
+	<!-- CASE WHEN 안에 있는 조건(INST_SE_CD = ?)의 INST_SE_CD 컬럼을 추후에 INLINE SUB QUERY A테이블에서 조회된 디지털 증거 유형 코드 컬럼으로 변경
+	     샘플에선 DMN.DGT_EVDNC_MEDIA_TY_CD
+	 -->
+	<select id="selectDataFileStatsList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT INST_CD, INST_NM,
+			   SUM((CASE WHEN INST_SE_CD = 'M881' THEN 1 ELSE 0 END )) AS CALL_JOINER,
+			   SUM((CASE WHEN INST_SE_CD = 'M882' THEN 1 ELSE 0 END )) AS FINC_DLNG_INFO,
+			   SUM((CASE WHEN INST_SE_CD = 'M883' THEN 1 ELSE 0 END )) AS EMAIL,
+			   SUM((CASE WHEN INST_SE_CD = 'M884' THEN 1 ELSE 0 END )) AS ACNTNG_FILE,
+			   SUM((CASE WHEN INST_SE_CD = 'M889' THEN 1 ELSE 0 END )) AS ETC
+		  FROM TN_INST TI<!--, (SELECT DIN.INST_CD, DMN.DGT_EVDNC_MEDIA_TY_CD
+		  									FROM NDF_INV001_ADM.DM_INCDN_N DIN, NDF_INV001_ADM.DM_MEDIA_N DMN, ( SELECT CMMN_CD FROM NDF_COM_ADM.TC_CMMN_CD WHERE DEL_YN = 'N' AND CMMN_TY_CD = 'ND1303') TCC
+		  								   WHERE DIN.INCDN_ID = DMN.INCDN_ID
+		  								     AND DMN.DGT_EVDNC_MEDIA_TY_CD = TCC.CMMN_CD
+		  								     AND DMN.DEL_YN = 'N'
+		  								     AND DIN.DEL_YN = 'N'
+		  								     AND TO_CHAR(DMN.FRST_REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-01-01') AND NVL(#{endDt}, '2022-12-31')) A
+		 WHERE TI.INST_CD = A.INST_CD(+)-->
+		 WHERE 1=1
+		   AND TI.DEL_YN = 'N'
+	   <if test="instCd != '' and instCd != null">
+		   AND TI.INST_CD = #{instCd}
+	   </if>
+		 GROUP BY TI.INST_CD, TI.INST_NM
+		 ORDER BY TI.INST_CD
+	</select>
+	
+	<select id="selectWorkRsltList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT TI.INST_CD, (CASE WHEN TI.INST_NM IS NULL THEN '합계' ELSE TI.INST_NM END) AS INST_NM,
+			   SUM(CASE WHEN B.CD = 'REG' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2019-01-01' AND '2019-12-31' ) THEN 1 ELSE 0 END) AS REG_CNT_2019,
+		 	   SUM(CASE WHEN B.CD = 'STORE' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2019-01-01' AND '2019-12-31' ) THEN 1 ELSE 0 END) AS STORE_CNT_2019,
+		 	   SUM(CASE WHEN B.CD = 'REG' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2020-01-01' AND '2020-12-31' ) THEN 1 ELSE 0 END) AS REG_CNT_2020,
+		 	   SUM(CASE WHEN B.CD = 'STORE' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2020-01-01' AND '2020-12-31' ) THEN 1 ELSE 0 END) AS STORE_CNT_2020,
+		 	   SUM(CASE WHEN B.CD = 'REG' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2021-01-01' AND '2021-12-31' ) THEN 1 ELSE 0 END) AS REG_CNT_2021,
+		 	   SUM(CASE WHEN B.CD = 'STORE' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2021-01-01' AND '2021-12-31' ) THEN 1 ELSE 0 END) AS STORE_CNT_2021,
+		 	   SUM(CASE WHEN B.CD = 'REG' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2022-01-01' AND '2022-12-31' ) THEN 1 ELSE 0 END) AS REG_CNT_2022,
+		 	   SUM(CASE WHEN B.CD = 'STORE' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN '2022-01-01' AND '2022-12-31' ) THEN 1 ELSE 0 END) AS STORE_CNT_2022,
+		 	   SUM(CASE WHEN B.CD = 'REG' THEN 1 ELSE 0 END) AS REG_CNT,
+		 	   SUM(CASE WHEN B.CD = 'STORE' THEN 1 ELSE 0 END) AS STORE_CNT
+		  FROM TN_INST TI, (SELECT '1160100' AS INST_CD, 'REG' AS CD, SYSDATE-7 AS REG_DT
+		  								  FROM DUAL
+		  								 UNION ALL
+		  								SELECT '1160100', 'STORE', SYSDATE-1
+		  								  FROM DUAL
+		  								 UNION ALL
+		  								SELECT '1160100', 'STORE', SYSDATE-1
+		  								  FROM DUAL
+		  								 UNION ALL
+		  								SELECT '1160100', 'REG', SYSDATE
+		  								  FROM DUAL) B
+		 WHERE 1=1
+		   AND TI.INST_CD = B.INST_CD(+)
+		   AND TI.DEL_YN = 'N'
+	   <if test="instCd != '' and instCd != null">
+		   AND TI.INST_CD = #{instCd}
+	   </if>
+		 GROUP BY ROLLUP(TI.INST_CD, TI.INST_NM) 
+		HAVING GROUPING_ID(TI.INST_CD, TI.INST_NM) IN (0, 3)
+		 ORDER BY TI.INST_CD
+	</select>
+	
+	<select id="selectRsltStatsList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT TI.INST_CD, TI.INST_NM,
+			   SUM(CASE WHEN B.CD = 'DECRY' AND ( TO_CHAR(B.REG_DT, 'YYYY-MM-DD') BETWEEN NVL(#{startDt}, '2022-12-20') AND NVL(#{endDt}, '2022-12-20') ) THEN 1 ELSE 0 END) AS DECRY_CNT
+		  FROM TN_INST TI, (SELECT '1160100' AS INST_CD, 'DECRY' AS CD, SYSDATE-7 AS REG_DT
+		  								  FROM DUAL
+		  								 UNION ALL
+		  								SELECT '1160100', 'DECRY', SYSDATE-1
+		  								  FROM DUAL
+		  								 UNION ALL
+		  								SELECT '1160100', 'DECRY', SYSDATE-1
+		  								  FROM DUAL
+		  								 UNION ALL
+		  								SELECT '1160100', 'DECRY', SYSDATE
+		  								  FROM DUAL) B
+		 WHERE 1=1
+		   AND TI.INST_CD = B.INST_CD(+)
+		   AND TI.DEL_YN = 'N'
+	   <if test="instCd != '' and instCd != null">
+		   AND TI.INST_CD = #{instCd}
+	   </if>
+		 GROUP BY TI.INST_CD, TI.INST_NM
+		 ORDER BY TI.INST_CD
+	</select>
+</mapper>

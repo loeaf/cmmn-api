@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.incdnt.incdntList.mapper.oracle.IncdntListMapper">
+
+	
+    <!-- 
+		조회
+	-->
+	<select id="selectListIncdntList" parameterType="hashmap" resultType="camelHashMap">
+		
+	</select>
+	
+	<!-- 
+		상세조회
+	-->
+	<select id="selectDetailIncdntList" parameterType="hashmap" resultType="camelHashMap">
+		
+	</select>
+	
+	
+	<!-- 
+		저장
+	-->	
+	<update id="saveIncdntList" parameterType="hashmap">
+		
+	</update>	
+	
+	<!-- 
+		삭제
+	-->	
+	<update id="deleteIncdntList" parameterType="hashmap">
+		
+	</update>
+	
+ </mapper>

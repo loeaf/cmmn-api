@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.spo.cmmn.admin.help.notice.mapper.mysql.NoticeMapper">
+
+	
+    <!-- 
+		조회
+	-->
+	<select id="selectListNotice" parameterType="hashmap" resultType="camelHashMap">
+		
+	</select>
+	
+	<!-- 
+		상세조회
+	-->
+	<select id="selectDetailNotice" parameterType="hashmap" resultType="camelHashMap">
+		
+	</select>
+	
+	
+	<!-- 
+		저장
+	-->	
+	<update id="saveNotice" parameterType="hashmap">
+		
+	</update>	
+	
+	<!-- 
+		삭제
+	-->	
+	<update id="deleteNotice" parameterType="hashmap">
+		
+	</update>
+	
+ </mapper>

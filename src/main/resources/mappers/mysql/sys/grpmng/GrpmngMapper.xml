@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spo.cmmn.admin.sys.grpmng.mapper.mysql.GrpmngMapper">
+
+	<select id="selectAuthgrpList" parameterType="hashmap" resultType="camelHashMap">
+		SELECT authrt_id, AUTHRT_NM, AUTHRT_DESC, OUTSD_INST_AUTHRT_USE_YN FROM TN_AUTHRT
+		where 1=1 <choose><when test="authrtId != null and !authrtId.equals('')">and authrt_id=#{authrtId}</when><otherwise></otherwise></choose>
+		AND DEL_YN = 'N'
+		ORDER BY AUTHRT_ID
+	</select>
+
+	<select id="selectMntree" parameterType="hashmap" resultType="camelHashMap">
+		SELECT LEVEL, MENU_ID, MENU_NM, PGM_PATH_NM, MENU_USE_YN, UP_MENU_ID
+		FROM TN_MENU
+		WHERE 1=1 
+		AND DEL_YN='N' 
+		START WITH up_menu_id IS NULL 
+		CONNECT BY PRIOR MENU_ID=UP_MENU_ID
+		ORDER BY LEVEL, REG_DT
+	</select>
+	
+	<select id="selectMntreeAuthmenu" parameterType="hashmap" resultType="camelHashMap">
+		SELECT MENU_ID, MENU_NM, UP_MENU_ID, REG_DT
+		  FROM TN_MENU
+		 START WITH MENU_ID IN (
+									SELECT MENU_ID
+									  FROM TN_AUTHRT_MENU
+									 WHERE AUTHRT_ID = #{authrtId}
+									   AND DEL_YN = 'N'
+								 <if test="checkedMenuList != null and checkedMenuList.length > 0">
+									 UNION ALL
+									SELECT MENU_ID
+									  FROM TN_MENU
+									 WHERE MENU_ID IN
+ 					   							  <foreach collection="checkedMenuList" item="checkedMenu" open="(" close=")" separator=",">
+							   						  #{checkedMenu}
+ 					   							  </foreach>
+									   AND DEL_YN = 'N'
+								 </if>
+		 					   )
+		CONNECT BY PRIOR UP_MENU_ID = MENU_ID 
+		  GROUP BY MENU_ID, MENU_NM, UP_MENU_ID, REG_DT
+		  ORDER BY REG_DT
+	</select>
+	
+	<update id="mntreeAuthmenuDelete" parameterType="java.lang.String">
+		UPDATE TN_AUTHRT_MENU
+		   SET DEL_YN = 'Y'
+		 WHERE AUTHRT_ID = #{authrtId}
+	</update>
+
+	<update id="mntreeAuthmenuSave" parameterType="hashmap">
+		MERGE INTO TN_AUTHRT_MENU
+		USING DUAL
+		   ON (AUTHRT_ID = #{authrtId} AND MENU_ID = #{menuId})
+		 WHEN MATCHED THEN
+		 	  UPDATE
+		 	     SET DEL_YN = 'N',
+		 	     LAST_CHGR_ID = #{lastChgrId},
+		 	     LAST_CHG_DT = SYSDATE,
+		 	     LAST_CHGR_IP_ADDR = #{lastChgrIpAddr}
+		 WHEN NOT MATCHED THEN
+		     INSERT (AUTHRT_ID, MENU_ID, DEL_YN, FRST_REGR_ID, FRST_REG_DT, FRST_REGR_IP_ADDR)
+		     VALUES (#{authrtId}, #{menuId}, 'N', #{frstRegrId}, SYSDATE, #{frstRegrIpAddr})
+	</update>
+	
+	<select id="selectTrxnames" parameterType="hashmap" resultType="camelHashMap">
+		SELECT FN_NM FROM TN_TRNSC
+	</select>
+
+	<select id="selectAuthgrpTrgt" parameterType="hashmap" resultType="camelHashMap">
+		SELECT A.USER_ID, A.USER_NM, C.AUTHRT_NM, D.DEPT_NM, E.INST_SE_NM, E.INST_NM
+		  FROM ( SELECT USER_ID, USER_NM, DEPT_CD
+		  		   FROM TN_USER
+		  		  WHERE DEL_YN = 'N' ) A,
+		       ( SELECT USER_ID, AUTHRT_ID
+		         	FROM TN_USER_AUTHRT_GRNT
+		          WHERE DEL_YN = 'N') B,
+		       ( SELECT AUTHRT_ID, AUTHRT_NM
+		           FROM TN_AUTHRT
+		          WHERE DEL_YN = 'N' ) C,
+		       ( SELECT DEPT_CD, DEPT_NM, INST_CD
+		           FROM TN_ORG
+		          WHERE DEL_YN = 'N' ) D,
+		       ( SELECT INST_CD, (CASE WHEN INST_SE_CD = 'N' THEN '특별사법경찰' ELSE '조사기관' END) AS INST_SE_NM, INST_NM
+		           FROM TN_INST
+		          WHERE DEL_YN = 'N' ) E
+		 WHERE A.USER_ID = B.USER_ID(+)
+		   AND B.AUTHRT_ID = C.AUTHRT_ID(+)
+		   AND A.DEPT_CD = D.DEPT_CD(+)
+		   AND D.INST_CD = E.INST_CD(+)
+		<choose><when test="authrtId != null and !authrtId.equals('')">AND B.AUTHRT_ID=#{authrtId}</when><otherwise></otherwise></choose>
+	</select>
+	
+	<insert id="insertAuthgrp" parameterType="hashmap" >
+		INSERT INTO TN_AUTHRT (
+		  authrt_id
+		  , authrt_nm
+		  <choose><when test="authrtDesc != null and !authrtDesc.equals('')">, authrt_desc</when><otherwise></otherwise></choose>
+		  , OUTSD_INST_AUTHRT_USE_YN
+		  , DEL_YN
+		  , REGR_ID 
+		  , REG_DT
+		  <choose><when test="frstRegrIpAddr != null and !frstRegrIpAddr.equals('')">, REGR_IP_ADDR</when><otherwise></otherwise></choose>
+		  , CHGR_ID 
+		  , CHG_DT
+		  <choose><when test="lastChgrIpAddr != null and !lastChgrIpAddr.equals('')">, CHGR_IP_ADDR</when><otherwise></otherwise></choose>
+		) 
+		values(
+		  <choose>
+			  <when test="authrtId != null and !authrtId.equals('')">#{authrtId}</when>
+			  <otherwise>(select NVL(MAX(authrt_id), 1001)+1 from TN_AUTHRT)</otherwise>
+		  </choose>
+		  ,#{authrtNm}
+		  <choose><when test="authrtDesc != null and !authrtDesc.equals('')">, #{authrtDesc}</when><otherwise></otherwise></choose>
+		  <choose><when test="outsdInstAuthrtUseYn != null and !outsdInstAuthrtUseYn.equals('')">, #{outsdInstAuthrtUseYn} </when><otherwise>,'N'</otherwise></choose>
+		  <choose><when test="delYn != null and !delYn.equals('')">, #{delYn}  </when><otherwise>,'N'</otherwise></choose>
+		  , #{frstRegrId} 
+		  <choose><when test="frstRegDt != null and !frstRegDt.equals('')">,to_date(#{frstRegDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+		  <choose><when test="frstRegrIpAddr != null and !frstRegrIpAddr.equals('')">, #{frstRegrIpAddr}</when><otherwise></otherwise></choose>
+		  , #{lastChgrId} 
+		  <choose><when test="lastChgDt != null and !lastChgDt.equals('')">,to_date(#{lastChgDt}, 'YYYY-MM-dd')</when><otherwise>,sysdate</otherwise></choose>
+		  <choose><when test="lastChgrIpAddr != null and !lastChgrIpAddr.equals('')">, #{lastChgrIpAddr}</when><otherwise></otherwise></choose>
+		)
+	</insert>
+	
+	<update id="updateAuthgrp" parameterType="hashmap" >
+		UPDATE TN_AUTHRT SET
+		<choose><when test="lastRegDt != null and !lastRegDt.equals('')">CHG_DT=#{lastRegDt}</when><otherwise>CHG_DT=sysdate</otherwise></choose>
+	    <choose><when test="lastRegrId != null and !lastRegrId.equals('')">,CHGR_ID=#{lastRegrId}</when><otherwise></otherwise></choose>
+	    <choose><when test="lastRegrIpAddr != null and !lastRegrIpAddr.equals('')">,CHGR_IP_ADDR=#{lastRegrIpAddr}</when><otherwise></otherwise></choose>
+		<choose><when test="frstRegDt != null and !frstRegDt.equals('')">,REG_DT=#{frstRegDt}</when><otherwise>,REG_DT=sysdate </otherwise></choose>
+	    <choose><when test="frstRegrId != null and !frstRegrId.equals('')">,REGR_ID=#{frstRegrId}</when><otherwise></otherwise></choose>
+	    <choose><when test="frstRegrIpAddr != null and !frstRegrIpAddr.equals('')">,REGR_IP_ADDR=#{frstRegrIpAddr}</when><otherwise></otherwise></choose>
+	    <choose><when test="delYn != null and !delYn.equals('')">,DEL_YN=#{delYn}</when><otherwise>,DEL_YN='N'</otherwise></choose>
+	    <choose><when test="authrtNm != null and !authrtNm.equals('')">,AUTHRT_NM=#{authrtNm}</when><otherwise></otherwise></choose>
+	    <choose><when test="authrtDesc != null and !authrtDesc.equals('')">,AUTHRT_DESC=#{authrtDesc}</when><otherwise></otherwise></choose>
+	    <choose><when test="outsdInstAuthrtUseYn != null and !outsdInstAuthrtUseYn.equals('')">,OUTSD_INST_AUTHRT_USE_YN=#{outsdInstAuthrtUseYn}</when><otherwise>,OUTSD_INST_AUTHRT_USE_YN='N'</otherwise></choose>
+	    WHERE AUTHRT_ID=#{authrtId}
+	</update>
+	
+	<update id="deleteAuthgrp" parameterType="hashmap">
+		UPDATE TN_AUTHRT SET
+		<choose><when test="delYn != null and !delYn.equals('')">DEL_YN=#{delYn}</when><otherwise>DEL_YN='Y'</otherwise></choose>
+	    WHERE AUTHRT_ID IN 
+    				   <foreach collection="checkedAuthrtGrpList" item="authrtGrpId" open="(" close=")" separator=",">
+	    				   #{authrtGrpId}
+    				   </foreach>
+    </update>
+ </mapper>
